@@ -366,30 +366,43 @@ class Spotify2YTMUI(tk.Tk):
         main_frame = tk.Frame(self, bg='#1e1e1e')
         main_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
+        # Configure grid to make output log area expandable
+        main_frame.grid_rowconfigure(0, weight=0)  # Title
+        main_frame.grid_rowconfigure(1, weight=0)  # Subtitle
+        main_frame.grid_rowconfigure(2, weight=0)  # Settings button
+        main_frame.grid_rowconfigure(3, weight=0)  # Batch size section
+        main_frame.grid_rowconfigure(4, weight=0)  # Notebook/tabs
+        main_frame.grid_rowconfigure(5, weight=0)  # Status bar
+        main_frame.grid_rowconfigure(6, weight=0)  # Progress bar
+        main_frame.grid_rowconfigure(7, weight=1)  # Output log (expandable)
+        main_frame.grid_columnconfigure(0, weight=1)
+
         title_label = tk.Label(main_frame, 
                               text="Spotify ➡️ YouTube Music", 
                               font=('Segoe UI', 18, 'bold'),
                               fg='white',
                               bg='#1e1e1e')
-        title_label.pack(pady=(0, 10))
+        title_label.grid(row=0, column=0, sticky="w", pady=(0, 10))
 
         subtitle_label = tk.Label(main_frame, 
                                  text="Transfer your music seamlessly", 
                                  font=('Segoe UI', 10),
                                  fg='#cccccc',
                                  bg='#1e1e1e')
-        subtitle_label.pack(pady=(0, 20))
+        subtitle_label.grid(row=1, column=0, sticky="w", pady=(0, 20))
 
         settings_btn = ttk.Button(main_frame, 
                              text="⚙️ Settings", 
                              command=self.open_settings,
                              style='Custom.TButton')
-        settings_btn.pack(pady=(0, 20))
+        settings_btn.grid(row=2, column=0, sticky="w", pady=(0, 20))
 
-        self.create_batch_size_section(main_frame)
+        batch_frame = tk.Frame(main_frame, bg='#1e1e1e')
+        batch_frame.grid(row=3, column=0, sticky="ew", pady=(0, 15))
+        self.create_batch_size_section(batch_frame)
 
         self.notebook = ttk.Notebook(main_frame, style='Custom.TNotebook')
-        self.notebook.pack(fill="both", expand=True, pady=(0, 15))
+        self.notebook.grid(row=4, column=0, sticky="ew", pady=(0, 15))
 
         self.playlists_tab = ttk.Frame(self.notebook, style='Custom.TFrame')
         self.liked_tab = ttk.Frame(self.notebook, style='Custom.TFrame')
@@ -404,7 +417,7 @@ class Spotify2YTMUI(tk.Tk):
         self.create_artists_tab()
 
         status_frame = tk.Frame(main_frame, bg='#2d2d2d', relief='flat', bd=1)
-        status_frame.pack(fill="x", pady=(0, 10))
+        status_frame.grid(row=5, column=0, sticky="ew", pady=(0, 10))
 
         self.progress = tk.StringVar()
         self.progress.set("Ready to transfer your music")
@@ -420,7 +433,7 @@ class Spotify2YTMUI(tk.Tk):
                                          orient="horizontal", 
                                          mode="determinate",
                                          style='Custom.Horizontal.TProgressbar')
-        self.progressbar.pack(fill="x", pady=(0, 15))
+        self.progressbar.grid(row=6, column=0, sticky="ew", pady=(0, 15))
 
         self.style.configure('Custom.Horizontal.TProgressbar',
                            background='#0078d4',
@@ -430,7 +443,7 @@ class Spotify2YTMUI(tk.Tk):
                            darkcolor='#0078d4')
 
         output_frame = tk.Frame(main_frame, bg='#1e1e1e')
-        output_frame.pack(fill="both", expand=True)
+        output_frame.grid(row=7, column=0, sticky="nsew")
 
         output_header = tk.Frame(output_frame, bg='#1e1e1e')
         output_header.pack(fill="x", pady=(0, 5))
