@@ -320,6 +320,7 @@ class Spotify2YTMUI(tk.Tk):
         
         self.title("Spotify ➡️ YouTube Music Playlist Copier")
         self.geometry("700x950")
+        self.minsize(600, 700)  # Set minimum window size for usability
         self.resizable(True, True)
         self.configure(bg='#1e1e1e')
         
@@ -366,15 +367,15 @@ class Spotify2YTMUI(tk.Tk):
         main_frame = tk.Frame(self, bg='#1e1e1e')
         main_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        # Configure grid to make output log area expandable
+        # Configure grid to make components responsive and expandable
         main_frame.grid_rowconfigure(0, weight=0)  # Title
         main_frame.grid_rowconfigure(1, weight=0)  # Subtitle
         main_frame.grid_rowconfigure(2, weight=0)  # Settings button
         main_frame.grid_rowconfigure(3, weight=0)  # Batch size section
-        main_frame.grid_rowconfigure(4, weight=0)  # Notebook/tabs
+        main_frame.grid_rowconfigure(4, weight=2)  # Notebook/tabs (expandable)
         main_frame.grid_rowconfigure(5, weight=0)  # Status bar
         main_frame.grid_rowconfigure(6, weight=0)  # Progress bar
-        main_frame.grid_rowconfigure(7, weight=1)  # Output log (expandable)
+        main_frame.grid_rowconfigure(7, weight=3)  # Output log (more expandable)
         main_frame.grid_columnconfigure(0, weight=1)
 
         title_label = tk.Label(main_frame, 
@@ -382,14 +383,14 @@ class Spotify2YTMUI(tk.Tk):
                               font=('Segoe UI', 18, 'bold'),
                               fg='white',
                               bg='#1e1e1e')
-        title_label.grid(row=0, column=0, sticky="w", pady=(0, 10))
+        title_label.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
         subtitle_label = tk.Label(main_frame, 
                                  text="Transfer your music seamlessly", 
                                  font=('Segoe UI', 10),
                                  fg='#cccccc',
                                  bg='#1e1e1e')
-        subtitle_label.grid(row=1, column=0, sticky="w", pady=(0, 20))
+        subtitle_label.grid(row=1, column=0, sticky="ew", pady=(0, 20))
 
         settings_btn = ttk.Button(main_frame, 
                              text="⚙️ Settings", 
@@ -402,7 +403,7 @@ class Spotify2YTMUI(tk.Tk):
         self.create_batch_size_section(batch_frame)
 
         self.notebook = ttk.Notebook(main_frame, style='Custom.TNotebook')
-        self.notebook.grid(row=4, column=0, sticky="ew", pady=(0, 15))
+        self.notebook.grid(row=4, column=0, sticky="nsew", pady=(0, 15))
 
         self.playlists_tab = ttk.Frame(self.notebook, style='Custom.TFrame')
         self.liked_tab = ttk.Frame(self.notebook, style='Custom.TFrame')
@@ -490,7 +491,7 @@ class Spotify2YTMUI(tk.Tk):
         self.batch_slider = tk.Scale(
             frame, from_=1, to=20, orient=tk.HORIZONTAL,
             bg='#2d2d2d', fg='white', highlightthickness=0,
-            showvalue=0, length=350, command=self.update_batch_display
+            showvalue=0, command=self.update_batch_display
         )
         self.batch_slider.set(self.config_data.get("batch_size", 5))
         self.batch_slider.pack(fill="x", padx=20, pady=(0, 0))
@@ -498,8 +499,8 @@ class Spotify2YTMUI(tk.Tk):
         self.batch_value_label = tk.Label(frame, text="", bg='#2d2d2d', fg='#4ecdc4', font=('Segoe UI', 10, 'bold'))
         self.batch_value_label.pack(anchor="w", padx=20, pady=(0, 0))
 
-        self.batch_description = tk.Label(frame, text="", bg='#2d2d2d', fg='#cccccc', font=('Segoe UI', 9), wraplength=600, justify="left")
-        self.batch_description.pack(anchor="w", padx=20, pady=(0, 10))
+        self.batch_description = tk.Label(frame, text="", bg='#2d2d2d', fg='#cccccc', font=('Segoe UI', 9), justify="left")
+        self.batch_description.pack(anchor="w", fill="x", padx=20, pady=(0, 10))
 
         presets_frame = tk.Frame(frame, bg='#2d2d2d')
         presets_frame.pack(anchor="w", padx=20, pady=(0, 10))
@@ -512,6 +513,9 @@ class Spotify2YTMUI(tk.Tk):
             ).pack(side="left", padx=4)
 
         self.update_batch_display(self.batch_slider.get())
+        
+        # Bind window resize to update wraplength dynamically
+        self.bind('<Configure>', self._update_wraplengths)
 
     def update_batch_display(self, value):
         batch_size = int(float(value))
@@ -543,7 +547,16 @@ class Spotify2YTMUI(tk.Tk):
         self.update_batch_display(value)
         self.append_response(f"⚙️ Batch size set to {value} tracks per batch")
 
-        
+    def _update_wraplengths(self, event=None):
+        """Update wraplength for labels based on current window width"""
+        try:
+            window_width = self.winfo_width()
+            # Set wraplength to window width minus padding (40px padding on each side + extra margin)
+            wrap_width = max(400, window_width - 120)  # Minimum 400px
+            if hasattr(self, 'batch_description'):
+                self.batch_description.config(wraplength=wrap_width)
+        except:
+            pass  # Ignore errors during initialization
 
     def append_response(self, msg):
         self.response_text.config(state="normal")
