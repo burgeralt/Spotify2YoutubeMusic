@@ -230,13 +230,44 @@ def create_ytm_playlist(playlist_name):
         print(e)
         return None
 
-def search_track_on_ytm(track_query):
+SEARCH_CACHE_FILE = "song_cache.json"
+search_cache = {}
+
+def load_search_cache():
+    global search_cache
+    if os.path.exists(SEARCH_CACHE_FILE):
+        try:
+            with open(SEARCH_CACHE_FILE, "r", encoding="utf-8") as f:
+                search_cache = json.load(f)
+        except:
+            pass
+
+def save_search_cache():
     try:
+        with open(SEARCH_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(search_cache, f, indent=2)
+    except:
+        pass
+
+def search_track_on_ytm(track_query):
+    global search_cache
+    if not search_cache:
+        load_search_cache()
+    
+    if track_query in search_cache:
+        return search_cache[track_query]
+
+    try:
+        time.sleep(0.1)
         search_results = get_ytmusic_client().search(query=track_query, filter="songs")
         if search_results:
             video_id = search_results[0]['videoId']
+            search_cache[track_query] = video_id
+            save_search_cache()
             return video_id
         else:
+            search_cache[track_query] = None
+            save_search_cache()
             return None
     except Exception as e:
         print(f"Error searching for track: {track_query}")
@@ -511,6 +542,7 @@ def copy_spotify_to_ytm():
                             print(f"No new tracks to add for playlist: {playlist_name}")
                         
                         delete_progress(playlist_name)
+                        verify_transfer_completeness(spotify_tracks, ytm_playlist_id, playlist_name)
                         
                     except HeaderExpiredError:
                         progress_file = save_progress(playlist_name, idx, len(spotify_tracks), 
@@ -560,6 +592,8 @@ def copy_spotify_to_ytm():
                 for track in not_found_tracks:
                     print(f"- {track}")
                 print()
+            
+            verify_transfer_completeness(liked_songs, ytm_playlist_id, playlist_name)
                 
         elif choice == "3":
             followed_artists = get_spotify_followed_artists()
@@ -678,6 +712,79 @@ def add_tracks_to_ytm_playlist_with_verification(playlist_id, track_ids, batch_s
     except Exception as e:
         print(f"Failed to add tracks to playlist ID: {playlist_id}")
         print(e)
+
+def verify_transfer_completeness(spotify_tracks, ytm_playlist_id, playlist_name):
+    print(f"\n📊 Verification Analysis for: {playlist_name}")
+    
+    report = {
+        "playlist_name": playlist_name,
+        "ytm_playlist_id": ytm_playlist_id,
+        "timestamp": time.ctime(),
+        "stats": {
+            "total_spotify_tracks": len(spotify_tracks),
+            "found_on_ytm": 0,
+            "successfully_in_playlist": 0,
+            "missing_from_playlist": 0
+        },
+        "missing_tracks": [],
+        "track_details": []
+    }
+
+    try:
+        current_ids = get_ytm_playlist_song_video_ids(ytm_playlist_id)
+        
+        missing_from_playlist = []
+        found_on_ytm_count = 0
+        
+        global search_cache
+        if not search_cache:
+            load_search_cache()
+            
+        for track in spotify_tracks:
+            ytm_id = search_cache.get(track)
+            status = "not_found"
+            
+            if ytm_id:
+                status = "found_but_missing"
+                found_on_ytm_count += 1
+                if ytm_id in current_ids:
+                    status = "success"
+                else:
+                    missing_from_playlist.append(track)
+            
+            report["track_details"].append({
+                "spotify_name": track,
+                "ytm_id": ytm_id,
+                "status": status
+            })
+        
+        report["stats"]["found_on_ytm"] = found_on_ytm_count
+        report["stats"]["successfully_in_playlist"] = len(current_ids) 
+        report["stats"]["missing_from_playlist"] = len(missing_from_playlist)
+        report["missing_tracks"] = missing_from_playlist
+
+        print(f"   • Total Spotify Tracks: {len(spotify_tracks)}")
+        print(f"   • Found on YouTube Music: {found_on_ytm_count}")
+        print(f"   • Actually in Playlist: {len(current_ids)}")
+        
+        if missing_from_playlist:
+            print(f"⚠️  The following {len(missing_from_playlist)} tracks were found on YTM but are NOT in the playlist:")
+            for t in missing_from_playlist[:10]:
+                print(f"   - {t}")
+            if len(missing_from_playlist) > 10:
+                print(f"   ... and {len(missing_from_playlist) - 10} more.")
+        else:
+            print("✅  All found tracks are present in the playlist.")
+            
+        safe_name = "".join([c for c in playlist_name if c.isalpha() or c.isdigit() or c==' ']).rstrip().replace(" ", "_")
+        filename = f"migration_report_{safe_name}.json"
+        
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2)
+        print(f"📄 Detailed migration report saved to: {filename}")
+            
+    except Exception as e:
+        print(f"Error during verification: {e}")
 
 def check_api_quota():
     try:
@@ -804,7 +911,7 @@ def perform_quota_check():
 
 def add_tracks_with_delayed_verification(
     playlist_id, track_ids, batch_size=5, retry_attempts=3, 
-    batch_delay=5, verification_delay=30, progress_callback=None,
+    batch_delay=5, verification_delay=15, progress_callback=None,
     start_batch_index=0  
 ):
     

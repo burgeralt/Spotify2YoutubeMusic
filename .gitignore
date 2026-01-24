@@ -48,3 +48,5 @@ MANIFEST
 # Project related files
 browser.json
 config.json
+migration_report_*.json
+song_cache.json

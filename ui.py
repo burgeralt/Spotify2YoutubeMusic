@@ -320,7 +320,7 @@ class Spotify2YTMUI(tk.Tk):
         
         self.title("Spotify ➡️ YouTube Music Playlist Copier")
         self.geometry("700x950")
-        self.minsize(600, 700)  # Set minimum window size for usability
+        self.minsize(600, 700) 
         self.resizable(True, True)
         self.configure(bg='#1e1e1e')
         
@@ -367,7 +367,6 @@ class Spotify2YTMUI(tk.Tk):
         main_frame = tk.Frame(self, bg='#1e1e1e')
         main_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        # Configure grid to make components responsive and expandable
         main_frame.grid_rowconfigure(0, weight=0)  # Title
         main_frame.grid_rowconfigure(1, weight=0)  # Subtitle
         main_frame.grid_rowconfigure(2, weight=0)  # Settings button
@@ -514,7 +513,6 @@ class Spotify2YTMUI(tk.Tk):
 
         self.update_batch_display(self.batch_slider.get())
         
-        # Bind window resize to update wraplength dynamically
         self.bind('<Configure>', self._update_wraplengths)
 
     def update_batch_display(self, value):
@@ -548,15 +546,13 @@ class Spotify2YTMUI(tk.Tk):
         self.append_response(f"⚙️ Batch size set to {value} tracks per batch")
 
     def _update_wraplengths(self, event=None):
-        """Update wraplength for labels based on current window width"""
         try:
             window_width = self.winfo_width()
-            # Set wraplength to window width minus padding (40px padding on each side + extra margin)
-            wrap_width = max(400, window_width - 120)  # Minimum 400px
+            wrap_width = max(400, window_width - 120)  
             if hasattr(self, 'batch_description'):
                 self.batch_description.config(wraplength=wrap_width)
         except:
-            pass  # Ignore errors during initialization
+            pass  
 
     def append_response(self, msg):
         self.response_text.config(state="normal")
@@ -964,6 +960,14 @@ class Spotify2YTMUI(tk.Tk):
                     if len(not_found_tracks) > 10:
                         self.append_response(f"   ... and {len(not_found_tracks) - 10} more")
                 
+                try:
+                    self.append_response(f"📊 Generating verification report for '{name}'...")
+                    copy_playlists.verify_transfer_completeness(tracks, ytm_playlist_id, name)
+                    safe_name = "".join([c for c in name if c.isalpha() or c.isdigit() or c==' ']).rstrip().replace(" ", "_")
+                    self.append_response(f"📄 Report saved to: migration_report_{safe_name}.json")
+                except Exception as e:
+                    self.append_response(f"⚠️ Failed to generate report: {e}")
+
                 copy_playlists.delete_progress(name)
                 self.reset_progress_bar()
                     
@@ -1151,6 +1155,14 @@ class Spotify2YTMUI(tk.Tk):
                 if len(not_found_tracks) > 10:
                     self.append_response(f"   ... and {len(not_found_tracks) - 10} more")
                         
+            try:
+                self.append_response(f"📊 Generating verification report for '{playlist_name}'...")
+                copy_playlists.verify_transfer_completeness(liked_songs, ytm_playlist_id, playlist_name)
+                safe_name = "".join([c for c in playlist_name if c.isalpha() or c.isdigit() or c==' ']).rstrip().replace(" ", "_")
+                self.append_response(f"📄 Report saved to: migration_report_{safe_name}.json")
+            except Exception as e:
+                self.append_response(f"⚠️ Failed to generate report: {e}")
+
             copy_playlists.delete_progress(playlist_name)
             self.reset_progress_bar()
                 
