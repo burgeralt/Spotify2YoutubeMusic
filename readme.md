@@ -1,3 +1,6 @@
+> [!WARNING]
+> **Update regarding Spotify API:** Spotify has currently put a hold on creating new applications on their developer dashboard. If you do not already have an app created, you may be unable to generate the necessary credentials to use this tool. **However, if you have previously created an app and have your Client ID and Client Secret, you can still use this tool normally.**
+
 # Spotify ➡️ YouTube Music Playlist Copier
 
 <p align="center">
@@ -19,7 +22,7 @@
 
 </p>
 
-### ✨ New: Easy Setup Scripts
+### New: Easy Setup Scripts
 
 - **S2YM.bat** (Windows) and **S2YM.sh** (macOS/Linux) now provide a one-step setup and launch experience.
 - No need to manually clone the repo or install dependencies—just run the script!
@@ -31,10 +34,10 @@
 ## Table of Contents
 
 1. [Introduction](#introduction)
-2. [✨ What's New](#-whats-new)
+2. [What's New](#-whats-new)
 3. [Features](#features)
 4. [Requirements](#requirements)
-5. [🚀 Quick Start (Recommended)](#-quick-start-recommended)
+5. [Quick Start (Recommended)](#-quick-start-recommended)
 6. [Installation (Manual)](#installation-manual)
 7. [Usage](#usage)
 8. [User Interface](#user-interface)
@@ -48,11 +51,11 @@
 
 ## Introduction
 
-**Spotify2YoutubeMusic** is a powerful Python tool that seamlessly transfers your music library from Spotify to YouTube Music. It features both a modern graphical interface and a command-line interface, making it easy to copy playlists, liked songs, and followed artists between platforms.
+**Spotify2YoutubeMusic** is a powerful Python tool that seamlessly transfers your music library from Spotify to YouTube Music. It features both a modern graphical interface and a command-line interfac[...]
 
 ---
 
-## ✨ What's New
+## What's New
 
 ### **Batch Size Control (NEW)**
 - **Adjustable Batch Size:** You can now set how many tracks are processed together (1–20) using a slider in the main interface.
@@ -115,7 +118,7 @@
 
 ---
 
-## 🚀 Quick Start (Recommended)
+## Quick Start (Recommended)
 
 Skip the manual installation! Use these one-liner commands to automatically download, set up, and launch the app:
 
