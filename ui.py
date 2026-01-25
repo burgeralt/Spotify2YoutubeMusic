@@ -319,8 +319,8 @@ class Spotify2YTMUI(tk.Tk):
         self.config_data = load_config()
         
         self.title("Spotify ➡️ YouTube Music Playlist Copier")
-        self.geometry("700x650")
-        self.minsize(600, 500) 
+        self.geometry("700x750")
+        self.minsize(600, 600) 
         self.resizable(True, True)
         self.configure(bg='#1e1e1e')
         
