@@ -842,6 +842,9 @@ class Spotify2YTMUI(tk.Tk):
                             self.progressbar["value"] = min(total_progress, len(ytm_video_ids))
                             self.progress.set(f"Adding tracks: {total_progress}/{len(ytm_video_ids)}")
                             self.update_idletasks()
+
+                    def error_callback(msg):
+                        self.append_response(msg)
                     
                     try:
                         actually_added, failed_batches = copy_playlists.add_tracks_with_delayed_verification(
@@ -851,7 +854,8 @@ class Spotify2YTMUI(tk.Tk):
                             batch_delay=5,
                             verification_delay=30,
                             progress_callback=progress_callback,
-                            start_batch_index=current_batch_index
+                            start_batch_index=current_batch_index,
+                            error_callback=error_callback
                         )
                         
                         if not self.progress_bar_state["paused"]:
@@ -910,6 +914,9 @@ class Spotify2YTMUI(tk.Tk):
                                     self.progressbar["value"] = min(total_progress, len(ytm_video_ids))
                                     self.progress.set(f"Adding tracks: {total_progress}/{len(ytm_video_ids)}")
                                     self.update_idletasks()
+
+                            def error_callback(msg):
+                                self.append_response(msg)
                             
                             actually_added, failed_batches = copy_playlists.add_tracks_with_delayed_verification(
                                 ytm_playlist_id,
@@ -918,7 +925,8 @@ class Spotify2YTMUI(tk.Tk):
                                 batch_delay=5,
                                 verification_delay=30,
                                 progress_callback=progress_callback,
-                                start_batch_index=0
+                                start_batch_index=0,
+                                error_callback=error_callback
                             )
                             
                             if not self.progress_bar_state["paused"]:
@@ -1045,6 +1053,9 @@ class Spotify2YTMUI(tk.Tk):
                         self.progressbar["value"] = min(total_progress, len(ytm_video_ids))
                         self.progress.set(f"Adding tracks: {total_progress}/{len(ytm_video_ids)}")
                         self.update_idletasks()
+
+                def error_callback(msg):
+                    self.append_response(msg)
                 
                 try:
                     actually_added, failed_batches = copy_playlists.add_tracks_with_delayed_verification(
@@ -1054,7 +1065,8 @@ class Spotify2YTMUI(tk.Tk):
                         batch_delay=5,
                         verification_delay=30,
                         progress_callback=progress_callback,
-                        start_batch_index=current_batch_index
+                        start_batch_index=current_batch_index,
+                        error_callback=error_callback
                     )
                     
                     if not self.progress_bar_state["paused"]:
@@ -1109,6 +1121,9 @@ class Spotify2YTMUI(tk.Tk):
                                 self.progressbar["value"] = min(total_progress, len(ytm_video_ids))
                                 self.progress.set(f"Adding tracks: {total_progress}/{len(ytm_video_ids)}")
                                 self.update_idletasks()
+
+                        def error_callback(msg):
+                            self.append_response(msg)
                         
                         actually_added, failed_batches = copy_playlists.add_tracks_with_delayed_verification(
                             ytm_playlist_id,
@@ -1117,7 +1132,8 @@ class Spotify2YTMUI(tk.Tk):
                             batch_delay=5,
                             verification_delay=30,
                             progress_callback=progress_callback,
-                            start_batch_index=0
+                            start_batch_index=0,
+                            error_callback=error_callback
                         )
                         
                         if not self.progress_bar_state["paused"]:

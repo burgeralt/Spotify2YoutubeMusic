@@ -912,7 +912,7 @@ def perform_quota_check():
 def add_tracks_with_delayed_verification(
     playlist_id, track_ids, batch_size=5, retry_attempts=3, 
     batch_delay=5, verification_delay=15, progress_callback=None,
-    start_batch_index=0  
+    start_batch_index=0, error_callback=None
 ):
     
     successfully_added = []
@@ -927,6 +927,7 @@ def add_tracks_with_delayed_verification(
             current_batch_index = i // batch_size  
             
             attempt = 0
+            last_error = None
             while attempt < retry_attempts:
                 try:
                     if not test_ytmusic_connection():
@@ -938,6 +939,7 @@ def add_tracks_with_delayed_verification(
                     break
                     
                 except Exception as e:
+                    last_error = e
                     error_str = str(e).lower()
                     if "401" in error_str or "403" in error_str or "unauthorized" in error_str:
                         raise HeaderExpiredError("Headers expired", batch_index=current_batch_index)
@@ -947,12 +949,28 @@ def add_tracks_with_delayed_verification(
                         break
                     else:
                         attempt += 1
-                        print(f"Batch {batch_num} attempt {attempt} failed: {e}")
+                        error_msg = f"Batch {batch_num} attempt {attempt} failed: {e}"
+                        print(error_msg)
+                        
+                        if error_callback:
+                            if "Maximum playlist size exceeded" in str(e):
+                                error_callback(f"⛔ CRITICAL: Playlist limit reached! (Max 5000 tracks). Cannot add more.")
+                            elif "400" in str(e) and "Bad Request" in str(e):
+                                error_callback(f"⚠️ Batch {batch_num} failed: Bad Request (Possible limit or invalid track).")
+                        
                         if attempt < retry_attempts:
                             time.sleep(batch_delay * attempt)
             else:
                 print(f"❌ Batch {batch_num} failed after all attempts")
+                if error_callback:
+                     error_callback(f"❌ Batch {batch_num} failed permanently after {retry_attempts} retries.")
                 failed_batches.append(batch)
+
+                if last_error and "Maximum playlist size exceeded" in str(last_error):
+                    print("🛑 Stopping transfer: Playlist limit reached.")
+                    if error_callback:
+                        error_callback("🛑 Transfer stopped: Playlist reached 5000 song limit.")
+                    return successfully_added, failed_batches
             
             if progress_callback:
                 progress_callback(len(successfully_added))
