@@ -319,8 +319,8 @@ class Spotify2YTMUI(tk.Tk):
         self.config_data = load_config()
         
         self.title("Spotify ➡️ YouTube Music Playlist Copier")
-        self.geometry("700x950")
-        self.minsize(600, 700) 
+        self.geometry("700x650")
+        self.minsize(600, 500) 
         self.resizable(True, True)
         self.configure(bg='#1e1e1e')
         
@@ -371,10 +371,9 @@ class Spotify2YTMUI(tk.Tk):
         main_frame.grid_rowconfigure(1, weight=0)  # Subtitle
         main_frame.grid_rowconfigure(2, weight=0)  # Settings button
         main_frame.grid_rowconfigure(3, weight=0)  # Batch size section
-        main_frame.grid_rowconfigure(4, weight=2)  # Notebook/tabs (expandable)
+        main_frame.grid_rowconfigure(4, weight=1)  # Notebook/tabs (expandable)
         main_frame.grid_rowconfigure(5, weight=0)  # Status bar
         main_frame.grid_rowconfigure(6, weight=0)  # Progress bar
-        main_frame.grid_rowconfigure(7, weight=3)  # Output log (more expandable)
         main_frame.grid_columnconfigure(0, weight=1)
 
         title_label = tk.Label(main_frame, 
@@ -391,11 +390,20 @@ class Spotify2YTMUI(tk.Tk):
                                  bg='#1e1e1e')
         subtitle_label.grid(row=1, column=0, sticky="ew", pady=(0, 20))
 
-        settings_btn = ttk.Button(main_frame, 
+        btn_frame = tk.Frame(main_frame, bg='#1e1e1e')
+        btn_frame.grid(row=2, column=0, sticky="ew", pady=(0, 20))
+
+        settings_btn = ttk.Button(btn_frame, 
                              text="⚙️ Settings", 
                              command=self.open_settings,
                              style='Custom.TButton')
-        settings_btn.grid(row=2, column=0, sticky="w", pady=(0, 20))
+        settings_btn.pack(side="left", padx=(0, 10), fill="x", expand=True)
+
+        logs_btn = ttk.Button(btn_frame, 
+                             text="📜 View Logs", 
+                             command=self.show_log_window,
+                             style='Custom.TButton')
+        logs_btn.pack(side="left", fill="x", expand=True)
 
         batch_frame = tk.Frame(main_frame, bg='#1e1e1e')
         batch_frame.grid(row=3, column=0, sticky="ew", pady=(0, 15))
@@ -442,43 +450,39 @@ class Spotify2YTMUI(tk.Tk):
                            lightcolor='#0078d4',
                            darkcolor='#0078d4')
 
-        output_frame = tk.Frame(main_frame, bg='#1e1e1e')
-        output_frame.grid(row=7, column=0, sticky="nsew")
+        self.setup_log_window()
 
-        output_header = tk.Frame(output_frame, bg='#1e1e1e')
-        output_header.pack(fill="x", pady=(0, 5))
+    def setup_log_window(self):
+        self.log_window = tk.Toplevel(self)
+        self.log_window.title("📜 Output Logs")
+        self.log_window.geometry("700x500")
+        self.log_window.configure(bg='#1e1e1e')
+        self.log_window.protocol("WM_DELETE_WINDOW", self.hide_log_window)
+        self.log_window.withdraw()
 
-        tk.Label(output_header, 
-                text="Output Log", 
-                font=('Segoe UI', 11, 'bold'),
-                fg='white',
-                bg='#1e1e1e').pack(side="left")
+        header_frame = tk.Frame(self.log_window, bg='#1e1e1e')
+        header_frame.pack(fill="x", padx=10, pady=10)
+        
+        tk.Label(header_frame, text="Activity Log", font=('Segoe UI', 12, 'bold'), fg='white', bg='#1e1e1e').pack(side="left")
+        ttk.Button(header_frame, text="Clear", command=self.clear_output, style='Red.TButton').pack(side="right")
 
-        ttk.Button(output_header, 
-                  text="Clear", 
-                  command=self.clear_output,
-                  style='Red.TButton').pack(side="right")
+        text_frame = tk.Frame(self.log_window, bg='#2d2d2d', relief='flat', bd=1)
+        text_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
-        text_frame = tk.Frame(output_frame, bg='#2d2d2d', relief='flat', bd=1)
-        text_frame.pack(fill="both", expand=True)
-
-        self.response_text = tk.Text(text_frame, 
-                                   height=8, 
-                                   state="disabled", 
-                                   wrap="word",
-                                   bg='#2d2d2d',
-                                   fg='#ffffff',
-                                   font=('Consolas', 9),
-                                   insertbackground='white',
-                                   selectbackground='#0078d4',
-                                   relief='flat',
-                                   bd=0)
+        self.response_text = tk.Text(text_frame, height=20, state="disabled", wrap="word", bg='#2d2d2d', fg='#ffffff', font=('Consolas', 9), insertbackground='white', selectbackground='#0078d4', relief='flat', bd=0)
         
         scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=self.response_text.yview)
         self.response_text.configure(yscrollcommand=scrollbar.set)
         
         self.response_text.pack(side="left", fill="both", expand=True, padx=10, pady=10)
         scrollbar.pack(side="right", fill="y", pady=10)
+
+    def show_log_window(self):
+        self.log_window.deiconify()
+        self.log_window.lift()
+
+    def hide_log_window(self):
+        self.log_window.withdraw()
 
 
     def create_batch_size_section(self, parent):
@@ -498,7 +502,10 @@ class Spotify2YTMUI(tk.Tk):
         self.batch_value_label = tk.Label(frame, text="", bg='#2d2d2d', fg='#4ecdc4', font=('Segoe UI', 10, 'bold'))
         self.batch_value_label.pack(anchor="w", padx=20, pady=(0, 0))
 
-        self.batch_description = tk.Label(frame, text="", bg='#2d2d2d', fg='#cccccc', font=('Segoe UI', 9), justify="left")
+        self.batch_description = tk.Label(
+            frame, text="", bg='#2d2d2d', fg='#cccccc', 
+            font=('Segoe UI', 9), justify="left", wraplength=500
+        )
         self.batch_description.pack(anchor="w", fill="x", padx=20, pady=(0, 10))
 
         presets_frame = tk.Frame(frame, bg='#2d2d2d')
@@ -513,7 +520,6 @@ class Spotify2YTMUI(tk.Tk):
 
         self.update_batch_display(self.batch_slider.get())
         
-        self.bind('<Configure>', self._update_wraplengths)
 
     def update_batch_display(self, value):
         batch_size = int(float(value))
@@ -545,15 +551,6 @@ class Spotify2YTMUI(tk.Tk):
         self.update_batch_display(value)
         self.append_response(f"⚙️ Batch size set to {value} tracks per batch")
 
-    def _update_wraplengths(self, event=None):
-        try:
-            window_width = self.winfo_width()
-            wrap_width = max(400, window_width - 120)  
-            if hasattr(self, 'batch_description'):
-                self.batch_description.config(wraplength=wrap_width)
-        except:
-            pass  
-
     def append_response(self, msg):
         self.response_text.config(state="normal")
         self.response_text.insert(tk.END, msg + "\n")
@@ -574,10 +571,28 @@ class Spotify2YTMUI(tk.Tk):
                                    font=('Segoe UI', 11),
                                    fg='#cccccc',
                                    bg='#1e1e1e')
-        instruction_label.pack(pady=(0, 15))
+        instruction_label.pack(side="top", pady=(0, 15), fill="x")
+
+        btn_frame = tk.Frame(container, bg='#1e1e1e')
+        btn_frame.pack(side="bottom", fill="x", pady=(15, 0))
+
+        ttk.Button(btn_frame, 
+                  text="🔄 Load Playlists", 
+                  command=self.load_playlists,
+                  style='Custom.TButton').pack(side="left", padx=(0, 10), fill="x", expand=True)
+
+        ttk.Button(btn_frame, 
+                  text="📋 Copy Selected", 
+                  command=self.copy_selected_playlists,
+                  style='Green.TButton').pack(side="left", padx=(0, 10), fill="x", expand=True)
+
+        ttk.Button(btn_frame, 
+                  text="📚 Copy All", 
+                  command=self.copy_all_playlists,
+                  style='Green.TButton').pack(side="left", fill="x", expand=True)
 
         listbox_frame = tk.Frame(container, bg='#2d2d2d', relief='flat', bd=1)
-        listbox_frame.pack(fill="both", expand=True, pady=(0, 15))
+        listbox_frame.pack(side="top", fill="both", expand=True)
 
         self.playlists_listbox = tk.Listbox(listbox_frame,
                                           selectmode=tk.MULTIPLE,
@@ -596,74 +611,62 @@ class Spotify2YTMUI(tk.Tk):
         self.playlists_listbox.pack(side="left", fill="both", expand=True, padx=10, pady=10)
         listbox_scrollbar.pack(side="right", fill="y", pady=10)
 
-        btn_frame = tk.Frame(container, bg='#1e1e1e')
-        btn_frame.pack(fill="x")
-
-        ttk.Button(btn_frame, 
-                  text="🔄 Load Playlists", 
-                  command=self.load_playlists,
-                  style='Custom.TButton').pack(side="left", padx=(0, 10))
-
-        ttk.Button(btn_frame, 
-                  text="📋 Copy Selected", 
-                  command=self.copy_selected_playlists,
-                  style='Green.TButton').pack(side="left", padx=(0, 10))
-
-        ttk.Button(btn_frame, 
-                  text="📚 Copy All", 
-                  command=self.copy_all_playlists,
-                  style='Green.TButton').pack(side="left")
-
     def create_liked_tab(self):
         container = tk.Frame(self.liked_tab, bg='#1e1e1e')
-        container.pack(expand=True)
+        container.pack(fill="both", expand=True)
+        
+        content = tk.Frame(container, bg='#1e1e1e')
+        content.place(relx=0.5, rely=0.5, anchor="center")
 
-        tk.Label(container,
+        tk.Label(content,
                 text="❤️",
                 font=('Segoe UI', 48),
                 fg='#ff6b6b',
                 bg='#1e1e1e').pack(pady=(40, 20))
 
-        tk.Label(container,
+        tk.Label(content,
                 text="Transfer Your Liked Songs",
                 font=('Segoe UI', 16, 'bold'),
                 fg='white',
                 bg='#1e1e1e').pack(pady=(0, 10))
 
-        tk.Label(container,
+        tk.Label(content,
                 text="Copy all your Spotify liked songs to a YouTube Music playlist",
                 font=('Segoe UI', 11),
                 fg='#cccccc',
                 bg='#1e1e1e').pack(pady=(0, 30))
 
-        ttk.Button(container,
+        ttk.Button(content,
                   text="💖 Transfer Liked Songs",
                   command=self.copy_liked_songs,
                   style='Green.TButton').pack()
 
     def create_artists_tab(self):
         container = tk.Frame(self.artists_tab, bg='#1e1e1e')
-        container.pack(expand=True)
+        container.pack(fill="both", expand=True)
 
-        tk.Label(container,
+        content = tk.Frame(container, bg='#1e1e1e')
+        content.place(relx=0.5, rely=0.5, anchor="center")
+
+        tk.Label(content,
                 text="👤",
                 font=('Segoe UI', 48),
                 fg='#4ecdc4',
                 bg='#1e1e1e').pack(pady=(40, 20))
 
-        tk.Label(container,
+        tk.Label(content,
                 text="Follow Your Artists",
                 font=('Segoe UI', 16, 'bold'),
                 fg='white',
                 bg='#1e1e1e').pack(pady=(0, 10))
 
-        tk.Label(container,
+        tk.Label(content,
                 text="Subscribe to your followed Spotify artists on YouTube Music",
                 font=('Segoe UI', 11),
                 fg='#cccccc',
                 bg='#1e1e1e').pack(pady=(0, 30))
 
-        ttk.Button(container,
+        ttk.Button(content,
                   text="👥 Follow Artists",
                   command=self.copy_followed_artists,
                   style='Green.TButton').pack()
