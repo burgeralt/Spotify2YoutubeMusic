@@ -61,7 +61,7 @@
 - **Smart Search Caching:** No more waiting for searches! The app now caches found songs in `song_cache.json`. If you re-run a transfer or copy playlists with shared songs, the search step is **instant**, skipping the YouTube Music query for known tracks.
 - **Detailed Migration Reports:** Get a complete breakdown of your music transfer. The app now generates `migration_report_[PlaylistName].json` files listing exactly which tracks succeeded, which failed, and which were missing on YouTube Music.
 
-### **Batch Size Control (NEW)**
+### **Batch Size Control**
 - **Adjustable Batch Size:** You can now set how many tracks are processed together (1–20) using a slider in the main interface.
 - **Quick Presets:** Instantly set Safe, Balanced, Fast, or Max batch sizes with one click.
 - **Live Guidance:** Color-coded descriptions help you pick the best setting for your connection and reliability needs.
