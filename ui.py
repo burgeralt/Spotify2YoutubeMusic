@@ -319,10 +319,11 @@ class Spotify2YTMUI(tk.Tk):
         self.is_paused = False
         self.is_cancelled = False
         
+        self.playlists_data = [] 
         self.config_data = load_config()
         
         self.title("Spotify ➡️ YouTube Music Playlist Copier")
-        self.geometry("700x750")
+        self.geometry("700x900")
         self.minsize(600, 600) 
         self.resizable(True, True)
         self.configure(bg='#1e1e1e')
@@ -658,6 +659,22 @@ class Spotify2YTMUI(tk.Tk):
                   command=self.copy_all_playlists,
                   style='Green.TButton').pack(side="left", fill="x", expand=True)
 
+        controls_frame = tk.Frame(container, bg='#1e1e1e')
+        controls_frame.pack(side="top", fill="x", pady=(0, 10))
+        
+        tk.Label(controls_frame, text="🔍 Filter:", bg='#1e1e1e', fg='white').pack(side="left", padx=(0, 5))
+        self.search_var = tk.StringVar()
+        self.search_var.trace("w", self.filter_playlists)
+        search_entry = tk.Entry(controls_frame, textvariable=self.search_var, bg='#404040', fg='white', width=30)
+        search_entry.pack(side="left", padx=(0, 20))
+        
+        tk.Label(controls_frame, text="Sort by:", bg='#1e1e1e', fg='white').pack(side="left", padx=(0, 5))
+        self.sort_var = tk.StringVar(value="Default")
+        sort_options = ["Default", "Name (A-Z)", "Name (Z-A)", "Tracks (High-Low)", "Tracks (Low-High)", "Status"]
+        sort_combo = ttk.Combobox(controls_frame, textvariable=self.sort_var, values=sort_options, state="readonly", width=15)
+        sort_combo.bind("<<ComboboxSelected>>", self.sort_playlists)
+        sort_combo.pack(side="left")
+
         listbox_frame = tk.Frame(container, bg='#2d2d2d', relief='flat', bd=1)
         listbox_frame.pack(side="top", fill="both", expand=True)
 
@@ -744,30 +761,78 @@ class Spotify2YTMUI(tk.Tk):
         if not self.check_configuration():
             return
             
-        for item in self.playlists_tree.get_children():
-            self.playlists_tree.delete(item)
-            
         self.progress.set("Loading playlists from Spotify... (and checking YTM)")
         self.update_idletasks()
         
         ytm_playlists_map = copy_playlists.fetch_all_ytm_playlists()
         
         self.playlists = copy_playlists.list_spotify_playlists()
+        self.playlists_data = [] 
+        
         for idx, playlist in enumerate(self.playlists):
             name = playlist['name']
-            total = playlist['tracks']['total'] if 'tracks' in playlist and 'total' in playlist['tracks'] else "?"
+            total = playlist['tracks']['total'] if 'tracks' in playlist and 'total' in playlist['tracks'] else 0
             
             display_name = f"🎵 {name} ({total} tracks)"
             status_text = ""
+            is_copied = False
             
             if name.strip().lower() in ytm_playlists_map:
                 status_text = "✅ Copied"
+                is_copied = True
             
-            tag = 'even' if idx % 2 == 0 else 'odd'
-            self.playlists_tree.insert("", "end", iid=str(idx), values=(display_name, status_text), tags=(tag,))
-            
+            self.playlists_data.append({
+                'original_index': idx,
+                'name': name,
+                'track_count': total,
+                'display_name': display_name,
+                'status_text': status_text,
+                'is_copied': is_copied
+            })
+
+        self.refresh_playlists_view()
         self.append_response("✅ Loaded playlists successfully")
         self.progress.set(f"Loaded {len(self.playlists)} playlists")
+
+    def filter_playlists(self, *args):
+        self.refresh_playlists_view()
+
+    def sort_playlists(self, event=None):
+        self.refresh_playlists_view()
+
+    def refresh_playlists_view(self):
+        for item in self.playlists_tree.get_children():
+            self.playlists_tree.delete(item)
+            
+        search_term = self.search_var.get().lower().strip()
+        sort_mode = self.sort_var.get()
+        
+        filtered_data = [
+            item for item in self.playlists_data 
+            if search_term in item['name'].lower()
+        ]
+        
+        if sort_mode == "Name (A-Z)":
+            filtered_data.sort(key=lambda x: x['name'].lower())
+        elif sort_mode == "Name (Z-A)":
+            filtered_data.sort(key=lambda x: x['name'].lower(), reverse=True)
+        elif sort_mode == "Tracks (High-Low)":
+            filtered_data.sort(key=lambda x: x['track_count'], reverse=True)
+        elif sort_mode == "Tracks (Low-High)":
+            filtered_data.sort(key=lambda x: x['track_count'])
+        elif sort_mode == "Status":
+
+            filtered_data.sort(key=lambda x: x['is_copied'])
+            
+        for i, item in enumerate(filtered_data):
+            tag = 'even' if i % 2 == 0 else 'odd'
+            self.playlists_tree.insert(
+                "", 
+                "end", 
+                iid=str(item['original_index']), 
+                values=(item['display_name'], item['status_text']), 
+                tags=(tag,)
+            )
 
     def copy_selected_playlists(self):
         if not self.check_configuration():
