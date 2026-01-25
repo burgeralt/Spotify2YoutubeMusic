@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 import threading
+import time
 import copy_playlists
 import json
 import os
@@ -315,6 +316,8 @@ class Spotify2YTMUI(tk.Tk):
             "paused": False
         }
         
+        self.is_paused = False
+        self.is_cancelled = False
         
         self.config_data = load_config()
         
@@ -427,6 +430,23 @@ class Spotify2YTMUI(tk.Tk):
         status_frame = tk.Frame(main_frame, bg='#2d2d2d', relief='flat', bd=1)
         status_frame.grid(row=5, column=0, sticky="ew", pady=(0, 10))
 
+        control_frame = tk.Frame(status_frame, bg='#2d2d2d')
+        control_frame.pack(side="right", padx=10, pady=5)
+        
+        self.pause_btn = ttk.Button(control_frame, 
+                                  text="⏸️ Pause", 
+                                  command=self.toggle_pause,
+                                  style='Custom.TButton')
+        self.pause_btn.pack(side="left", padx=(0, 5))
+        
+        self.cancel_btn = ttk.Button(control_frame, 
+                                   text="❌ Cancel", 
+                                   command=self.cancel_transfer,
+                                   style='Red.TButton')
+        self.cancel_btn.pack(side="left")
+        
+        self.hide_control_buttons()
+
         self.progress = tk.StringVar()
         self.progress.set("Ready to transfer your music")
         status_label = tk.Label(status_frame, 
@@ -435,7 +455,7 @@ class Spotify2YTMUI(tk.Tk):
                                font=('Segoe UI', 9),
                                fg='#cccccc',
                                bg='#2d2d2d')
-        status_label.pack(fill="x", padx=15, pady=8)
+        status_label.pack(side="left", fill="x", expand=True, padx=15, pady=8)
 
         self.progressbar = ttk.Progressbar(main_frame, 
                                          orient="horizontal", 
@@ -484,6 +504,45 @@ class Spotify2YTMUI(tk.Tk):
     def hide_log_window(self):
         self.log_window.withdraw()
 
+    def show_control_buttons(self):
+        self.pause_btn.pack(side="left", padx=(0, 5))
+        self.cancel_btn.pack(side="left")
+
+    def hide_control_buttons(self):
+        self.pause_btn.pack_forget()
+        self.cancel_btn.pack_forget()
+
+    def toggle_pause(self):
+        if self.is_paused:
+            self.is_paused = False
+            self.pause_btn.config(text="⏸️ Pause")
+            status = self.progress.get().replace(" (Paused)", "")
+            self.progress.set(status)
+            self.resume_progress_bar()
+            self.append_response("▶️ Resumed")
+        else:
+            self.is_paused = True
+            self.pause_btn.config(text="▶️ Resume")
+            self.progress.set(self.progress.get() + " (Paused)")
+            self.pause_progress_bar()
+            self.append_response("⏸️ Paused")
+
+    def cancel_transfer(self):
+        if messagebox.askyesno("Cancel Transfer", "Are you sure you want to cancel the current operation?"):
+            self.is_cancelled = True
+            self.is_paused = False 
+            self.pause_btn.config(text="⏸️ Pause")
+            self.resume_progress_bar()
+            self.append_response("🛑 Cancelling...")
+            self.hide_control_buttons()
+
+    def check_control_status(self):
+        while self.is_paused and not self.is_cancelled:
+            time.sleep(0.1)
+        
+        if self.is_cancelled:
+            return False 
+        return True
 
     def create_batch_size_section(self, parent):
         frame = tk.LabelFrame(parent, text="Batch Size", bg='#2d2d2d', fg='white', font=('Segoe UI', 11, 'bold'))
@@ -693,6 +752,12 @@ class Spotify2YTMUI(tk.Tk):
         if not selected:
             messagebox.showinfo("No Selection", "Please select at least one playlist.")
             return
+        
+        self.is_cancelled = False
+        self.is_paused = False
+        self.pause_btn.config(text="⏸️ Pause")
+        self.show_control_buttons()
+        
         playlists = [self.playlists[i] for i in selected]
         threading.Thread(target=self._copy_playlists, args=(playlists,)).start()
 
@@ -701,6 +766,12 @@ class Spotify2YTMUI(tk.Tk):
             return
         if not self.check_api_quotas():
             return
+            
+        self.is_cancelled = False
+        self.is_paused = False
+        self.pause_btn.config(text="⏸️ Pause")
+        self.show_control_buttons()
+        
         threading.Thread(target=self._copy_playlists, args=(self.playlists,)).start()
 
     def pause_progress_bar(self):
@@ -785,6 +856,11 @@ class Spotify2YTMUI(tk.Tk):
 
     def _copy_playlists(self, playlists):
         for playlist in playlists:
+            if not self.check_control_status():
+                self.append_response("🛑 Operation cancelled.")
+                self.reset_progress_bar()
+                return
+
             name = playlist['name']
             playlist_id = playlist['id']
 
@@ -858,9 +934,15 @@ class Spotify2YTMUI(tk.Tk):
                             verification_delay=30,
                             progress_callback=progress_callback,
                             start_batch_index=current_batch_index,
-                            error_callback=error_callback
+                            error_callback=error_callback,
+                            control_callback=self.check_control_status
                         )
                         
+                        if self.is_cancelled:
+                            self.append_response("🛑 Operation cancelled during batch processing.")
+                            self.reset_progress_bar()
+                            return
+
                         if not self.progress_bar_state["paused"]:
                             self.progressbar["value"] = len(ytm_video_ids)
                         
@@ -890,6 +972,11 @@ class Spotify2YTMUI(tk.Tk):
                 
                 else:
                     for idx in range(start_index, len(tracks)):
+                        if not self.check_control_status():
+                            self.append_response("🛑 Operation cancelled.")
+                            self.reset_progress_bar()
+                            return
+
                         track = tracks[idx]
                         video_id = copy_playlists.search_track_on_ytm(track)
                         if video_id and video_id not in existing_video_ids:
@@ -929,9 +1016,15 @@ class Spotify2YTMUI(tk.Tk):
                                 verification_delay=30,
                                 progress_callback=progress_callback,
                                 start_batch_index=0,
-                                error_callback=error_callback
+                                error_callback=error_callback,
+                                control_callback=self.check_control_status
                             )
                             
+                            if self.is_cancelled:
+                                self.append_response("🛑 Operation cancelled during batch processing.")
+                                self.reset_progress_bar()
+                                return
+
                             if not self.progress_bar_state["paused"]:
                                 self.progressbar["value"] = len(ytm_video_ids)
                             
@@ -991,6 +1084,7 @@ class Spotify2YTMUI(tk.Tk):
                 
         self.progress.set("✅ Playlist transfer completed")
         self.append_response("🎉 Finished copying all playlists!")
+        self.after(0, self.hide_control_buttons)
         messagebox.showinfo("Success", "Playlists transferred successfully!")
 
     def _copy_liked_songs(self):
@@ -1069,9 +1163,15 @@ class Spotify2YTMUI(tk.Tk):
                         verification_delay=30,
                         progress_callback=progress_callback,
                         start_batch_index=current_batch_index,
-                        error_callback=error_callback
+                        error_callback=error_callback,
+                        control_callback=self.check_control_status
                     )
                     
+                    if self.is_cancelled:
+                        self.append_response("🛑 Operation cancelled during batch processing.")
+                        self.reset_progress_bar()
+                        return
+
                     if not self.progress_bar_state["paused"]:
                         self.progressbar["value"] = len(ytm_video_ids)
                     
@@ -1097,6 +1197,11 @@ class Spotify2YTMUI(tk.Tk):
             
             else:
                 for idx in range(start_index, len(liked_songs)):
+                    if not self.check_control_status():
+                        self.append_response("🛑 Operation cancelled.")
+                        self.reset_progress_bar()
+                        return
+
                     track = liked_songs[idx]
                     video_id = copy_playlists.search_track_on_ytm(track)
                     if video_id and video_id not in existing_video_ids:
@@ -1136,9 +1241,15 @@ class Spotify2YTMUI(tk.Tk):
                             verification_delay=30,
                             progress_callback=progress_callback,
                             start_batch_index=0,
-                            error_callback=error_callback
+                            error_callback=error_callback,
+                            control_callback=self.check_control_status
                         )
                         
+                        if self.is_cancelled:
+                            self.append_response("🛑 Operation cancelled during batch processing.")
+                            self.reset_progress_bar()
+                            return
+
                         if not self.progress_bar_state["paused"]:
                             self.progressbar["value"] = len(ytm_video_ids)
                         
@@ -1194,6 +1305,7 @@ class Spotify2YTMUI(tk.Tk):
             
         self.progress.set("✅ Liked songs transfer completed")
         self.append_response("🎉 Finished copying liked songs!")
+        self.after(0, self.hide_control_buttons)
         messagebox.showinfo("Success", "Liked songs transferred successfully!")
 
     def copy_liked_songs(self):
@@ -1201,11 +1313,23 @@ class Spotify2YTMUI(tk.Tk):
             return
         if not self.check_api_quotas():
             return
+        
+        self.is_cancelled = False
+        self.is_paused = False
+        self.pause_btn.config(text="⏸️ Pause")
+        self.show_control_buttons()
+
         threading.Thread(target=self._copy_liked_songs).start()
 
     def copy_followed_artists(self):
         if not self.check_configuration():
             return
+            
+        self.is_cancelled = False
+        self.is_paused = False
+        self.pause_btn.config(text="⏸️ Pause")
+        self.show_control_buttons()
+
         threading.Thread(target=self._copy_followed_artists).start()
 
     def _copy_followed_artists(self):
@@ -1219,9 +1343,15 @@ class Spotify2YTMUI(tk.Tk):
             return
         
         self.append_response(f"🔄 Subscribing to {len(artists)} artists...")
-        copy_playlists.subscribe_to_ytm_artists(artists)
+        copy_playlists.subscribe_to_ytm_artists(artists, control_callback=self.check_control_status)
+        
+        if self.is_cancelled:
+            self.append_response("🛑 Operation cancelled.")
+            return
+
         self.progress.set("✅ Artist subscription completed")
         self.append_response("🎉 Finished subscribing to artists!")
+        self.after(0, self.hide_control_buttons)
         messagebox.showinfo("Success", "Artists followed successfully!")
 
     def open_settings(self):

@@ -406,8 +406,13 @@ def get_spotify_followed_artists():
             break
     return followed_artists
 
-def subscribe_to_ytm_artists(artist_names):
+def subscribe_to_ytm_artists(artist_names, control_callback=None):
     for artist_name in artist_names:
+        if control_callback:
+            if not control_callback():
+                print("🛑 Artist subscription cancelled.")
+                return
+
         try:            
             search_results = get_ytmusic_client().search(query=artist_name, filter="artists")
             if search_results:                
@@ -912,7 +917,7 @@ def perform_quota_check():
 def add_tracks_with_delayed_verification(
     playlist_id, track_ids, batch_size=5, retry_attempts=3, 
     batch_delay=5, verification_delay=15, progress_callback=None,
-    start_batch_index=0, error_callback=None
+    start_batch_index=0, error_callback=None, control_callback=None
 ):
     
     successfully_added = []
@@ -922,6 +927,12 @@ def add_tracks_with_delayed_verification(
         total_batches = (len(track_ids) + batch_size - 1) // batch_size
         
         for i in range(start_batch_index * batch_size, len(track_ids), batch_size):
+            if control_callback:
+                if not control_callback():
+                    if error_callback:
+                        error_callback("🛑 Transfer cancelled or stopped by user.")
+                    return successfully_added, failed_batches
+
             batch = track_ids[i:i + batch_size]
             batch_num = (i // batch_size) + 1
             current_batch_index = i // batch_size  
