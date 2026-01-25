@@ -338,6 +338,14 @@ class Spotify2YTMUI(tk.Tk):
                            font=('Segoe UI', 10))
         self.style.map('Custom.TNotebook.Tab',
                       background=[('selected', '#0078d4'), ('active', '#404044')])
+
+        self.style.configure("Treeview", 
+                           background="#2d2d2d", 
+                           foreground="white", 
+                           fieldbackground="#2d2d2d",
+                           font=('Segoe UI', 10),
+                           borderwidth=0)
+        self.style.map('Treeview', background=[('selected', '#0078d4')])
         
         self.style.configure('Custom.TFrame', background='#1e1e1e')
         self.style.configure('Custom.TButton', 
@@ -653,21 +661,23 @@ class Spotify2YTMUI(tk.Tk):
         listbox_frame = tk.Frame(container, bg='#2d2d2d', relief='flat', bd=1)
         listbox_frame.pack(side="top", fill="both", expand=True)
 
-        self.playlists_listbox = tk.Listbox(listbox_frame,
-                                          selectmode=tk.MULTIPLE,
-                                          bg='#2d2d2d',
-                                          fg='white',
-                                          font=('Segoe UI', 10),
-                                          selectbackground='#0078d4',
-                                          selectforeground='white',
-                                          relief='flat',
-                                          bd=0,
-                                          highlightthickness=0)
+        self.playlists_tree = ttk.Treeview(listbox_frame, 
+                                         columns=("name", "status"), 
+                                         show="tree", 
+                                         selectmode="extended",
+                                         style="Treeview")
         
-        listbox_scrollbar = ttk.Scrollbar(listbox_frame, orient="vertical", command=self.playlists_listbox.yview)
-        self.playlists_listbox.configure(yscrollcommand=listbox_scrollbar.set)
+        self.playlists_tree.column("#0", width=0, stretch=tk.NO)
+        self.playlists_tree.column("name", anchor=tk.W, stretch=tk.YES)
+        self.playlists_tree.column("status", anchor=tk.E, width=150, stretch=tk.NO)
         
-        self.playlists_listbox.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        self.playlists_tree.tag_configure('odd', background='#252525')
+        self.playlists_tree.tag_configure('even', background='#2d2d2d')
+
+        listbox_scrollbar = ttk.Scrollbar(listbox_frame, orient="vertical", command=self.playlists_tree.yview)
+        self.playlists_tree.configure(yscrollcommand=listbox_scrollbar.set)
+        
+        self.playlists_tree.pack(side="left", fill="both", expand=True, padx=10, pady=10)
         listbox_scrollbar.pack(side="right", fill="y", pady=10)
 
     def create_liked_tab(self):
@@ -733,13 +743,29 @@ class Spotify2YTMUI(tk.Tk):
     def load_playlists(self):
         if not self.check_configuration():
             return
-        self.playlists_listbox.delete(0, tk.END)
-        self.progress.set("Loading playlists from Spotify...")
+            
+        for item in self.playlists_tree.get_children():
+            self.playlists_tree.delete(item)
+            
+        self.progress.set("Loading playlists from Spotify... (and checking YTM)")
+        self.update_idletasks()
+        
+        ytm_playlists_map = copy_playlists.fetch_all_ytm_playlists()
+        
         self.playlists = copy_playlists.list_spotify_playlists()
         for idx, playlist in enumerate(self.playlists):
             name = playlist['name']
             total = playlist['tracks']['total'] if 'tracks' in playlist and 'total' in playlist['tracks'] else "?"
-            self.playlists_listbox.insert(tk.END, f"🎵 {name} ({total} tracks)")
+            
+            display_name = f"🎵 {name} ({total} tracks)"
+            status_text = ""
+            
+            if name.strip().lower() in ytm_playlists_map:
+                status_text = "✅ Copied"
+            
+            tag = 'even' if idx % 2 == 0 else 'odd'
+            self.playlists_tree.insert("", "end", iid=str(idx), values=(display_name, status_text), tags=(tag,))
+            
         self.append_response("✅ Loaded playlists successfully")
         self.progress.set(f"Loaded {len(self.playlists)} playlists")
 
@@ -748,8 +774,9 @@ class Spotify2YTMUI(tk.Tk):
             return
         if not self.check_api_quotas():
             return
-        selected = self.playlists_listbox.curselection()
-        if not selected:
+            
+        selected_iids = self.playlists_tree.selection()
+        if not selected_iids:
             messagebox.showinfo("No Selection", "Please select at least one playlist.")
             return
         
@@ -758,7 +785,7 @@ class Spotify2YTMUI(tk.Tk):
         self.pause_btn.config(text="⏸️ Pause")
         self.show_control_buttons()
         
-        playlists = [self.playlists[i] for i in selected]
+        playlists = [self.playlists[int(iid)] for iid in selected_iids]
         threading.Thread(target=self._copy_playlists, args=(playlists,)).start()
 
     def copy_all_playlists(self):

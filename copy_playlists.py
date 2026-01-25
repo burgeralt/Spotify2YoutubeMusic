@@ -147,6 +147,24 @@ def get_ytm_playlist_by_name(playlist_name):
         print(f"Error fetching YouTube Music playlists: {e}")
         return None
 
+def fetch_all_ytm_playlists():
+    try:
+        client = get_ytmusic_client()
+        if not client:
+            return {}
+        
+        playlists = client.get_library_playlists(limit=None)
+        playlist_map = {}
+        
+        for p in playlists:
+            title_key = p['title'].strip().lower()
+            playlist_map[title_key] = p
+            
+        return playlist_map
+    except Exception as e:
+        print(f"Error fetching YTM playlists: {e}")
+        return {}
+
 def get_ytm_playlist_song_video_ids(playlist_id):
     video_ids = set()
     try:
