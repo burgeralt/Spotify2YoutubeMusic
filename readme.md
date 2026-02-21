@@ -1,6 +1,3 @@
-> [!WARNING]
-> **Update regarding Spotify API:** Spotify has currently put a hold on creating new applications on their developer dashboard. If you do not already have an app created, you may be unable to generate the necessary credentials to use this tool. **However, if you have previously created an app and have your Client ID and Client Secret, you can still use this tool normally.**
-
 # Spotify ➡️ YouTube Music Playlist Copier
 
 <p align="center">
