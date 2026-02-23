@@ -101,7 +101,7 @@ if not exist ".venv" (
 
 REM Activate virtual environment
 echo Activating virtual environment...
-call .venv\Scripts\activate.bat
+call .venv\Bin\Activate.ps1
 if errorlevel 1 (
     echo [ERROR] Failed to activate virtual environment!
     cd /d "%STARTDIR%"
